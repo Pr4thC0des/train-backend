@@ -61,6 +61,26 @@
         </div>
     </div>
 
+    <div id="reportModal" class="modal-backdrop">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2><i class="fas fa-file-alt"></i> Inspection Report</h2>
+                    <p id="modalDate" style="margin:4px 0 0; opacity:0.9; font-size:14px; font-weight:normal;">Loading...</p>
+                </div>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body" id="modalBody">
+                </div>
+
+            <div class="modal-footer">
+                <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Print Report</button>
+                <button class="btn-close" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
