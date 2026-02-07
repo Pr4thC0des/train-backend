@@ -7,66 +7,85 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
 app.use(cors());
-
-// Serve static files from the 'public' folder (HTML, CSS, JS)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- DATABASE CONNECTION ---
-// Connect to MongoDB using the URI from your .env file
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("✅ Connected to MongoDB"))
-    .catch((err) => console.error("❌ MongoDB Connection Error:", err));
+    .then(() => {
+        console.log("✅ Connected to MongoDB");
+        createDefaultUser(); // Auto-create admin user on startup
+    })
+    .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// Define the Schema (Structure of your data)
+// --- SCHEMAS ---
 const ScorecardSchema = new mongoose.Schema({
     stationName: { type: String, required: true },
     inspectionDate: { type: Date, required: true },
-    scores: { type: Map, of: [Number] }, // Allows dynamic keys like "Toilet Cleanliness"
+    scores: { type: Map, of: [Number] },
     remarks: { type: Map, of: String },
     submittedAt: { type: Date, default: Date.now }
 });
 
+const UserSchema = new mongoose.Schema({
+    employeeId: { type: String, required: true, unique: true },
+    password: { type: String, required: true } // In production, hash this!
+});
+
 const Scorecard = mongoose.model('Scorecard', ScorecardSchema);
+const User = mongoose.model('User', UserSchema);
+
+// --- HELPER: Create Default Admin ---
+async function createDefaultUser() {
+    const existing = await User.findOne({ employeeId: 'admin' });
+    if (!existing) {
+        await new User({ employeeId: 'admin', password: 'password123' }).save();
+        console.log("🔒 Default User Created: ID=admin, Pass=password123");
+    }
+}
 
 // --- ROUTES ---
 
-// 1. Submit Data (App -> Server)
-app.post('/submit', async (req, res) => {
+// 1. LOGIN ROUTE (New)
+app.post('/api/login', async (req, res) => {
+    const { employeeId, password } = req.body;
     try {
-        console.log("🚂 Receiving submission for:", req.body.stationName);
-        
-        // Create new entry in database
-        const newEntry = new Scorecard(req.body);
-        await newEntry.save();
-        
-        console.log("✅ Saved to MongoDB!");
-        res.status(201).json({ success: true, message: "Scorecard saved successfully." });
+        const user = await User.findOne({ employeeId });
+        if (!user || user.password !== password) {
+            return res.status(401).json({ success: false, message: "Invalid ID or Password" });
+        }
+        res.json({ success: true, message: "Login Successful", user: user.employeeId });
     } catch (error) {
-        console.error("❌ Save Error:", error);
-        res.status(500).json({ success: false, message: "Server Error: Could not save data." });
+        res.status(500).json({ success: false, message: "Server Error" });
     }
 });
 
-// 2. Get Data (Server -> Website Dashboard)
+// 2. Submit Scorecard
+app.post('/submit', async (req, res) => {
+    try {
+        const newEntry = new Scorecard(req.body);
+        await newEntry.save();
+        console.log("✅ Saved Report for:", req.body.stationName);
+        res.status(201).json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Save Failed" });
+    }
+});
+
+// 3. Get Scorecards
 app.get('/api/scorecards', async (req, res) => {
     try {
-        // Fetch all records, sorted by newest first
         const history = await Scorecard.find().sort({ submittedAt: -1 });
         res.json(history);
     } catch (error) {
-        res.status(500).json({ error: "Could not fetch data" });
+        res.status(500).json({ error: "Fetch Failed" });
     }
 });
 
-// 3. Serve the Website (For any other route, show index.html)
+// 4. Serve Website
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
