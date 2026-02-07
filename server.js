@@ -13,13 +13,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- DATABASE CONNECTION ---
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log("✅ Connected to MongoDB");
-        createDefaultUser(); // Auto-create admin user on startup
-    })
+    .then(() => console.log("✅ Connected to MongoDB"))
     .catch((err) => console.error("❌ MongoDB Error:", err));
 
 // --- SCHEMAS ---
+const UserSchema = new mongoose.Schema({
+    employeeId: { type: String, required: true, unique: true },
+    password: { type: String, required: true } 
+});
+
 const ScorecardSchema = new mongoose.Schema({
     stationName: { type: String, required: true },
     inspectionDate: { type: Date, required: true },
@@ -28,52 +30,60 @@ const ScorecardSchema = new mongoose.Schema({
     submittedAt: { type: Date, default: Date.now }
 });
 
-const UserSchema = new mongoose.Schema({
-    employeeId: { type: String, required: true, unique: true },
-    password: { type: String, required: true } // In production, hash this!
-});
-
-const Scorecard = mongoose.model('Scorecard', ScorecardSchema);
 const User = mongoose.model('User', UserSchema);
-
-// --- HELPER: Create Default Admin ---
-async function createDefaultUser() {
-    const existing = await User.findOne({ employeeId: 'admin' });
-    if (!existing) {
-        await new User({ employeeId: 'admin', password: 'password123' }).save();
-        console.log("🔒 Default User Created: ID=admin, Pass=password123");
-    }
-}
+const Scorecard = mongoose.model('Scorecard', ScorecardSchema);
 
 // --- ROUTES ---
 
-// 1. LOGIN ROUTE (New)
+// 1. REGISTER USER (Run this once to create your admin)
+app.post('/api/register', async (req, res) => {
+    try {
+        const { employeeId, password } = req.body;
+        // Check if user exists
+        const existing = await User.findOne({ employeeId });
+        if (existing) return res.status(400).json({ success: false, message: "User already exists" });
+
+        // Create new user
+        const newUser = new User({ employeeId, password });
+        await newUser.save();
+        
+        console.log("👤 New User Registered:", employeeId);
+        res.json({ success: true, message: "User created successfully!" });
+    } catch (error) {
+        res.status(500).json({ success: false, message: "Error registering user" });
+    }
+});
+
+// 2. LOGIN USER (Used by App)
 app.post('/api/login', async (req, res) => {
     const { employeeId, password } = req.body;
     try {
         const user = await User.findOne({ employeeId });
+        
         if (!user || user.password !== password) {
             return res.status(401).json({ success: false, message: "Invalid ID or Password" });
         }
+        
+        console.log("🔓 Login Success:", employeeId);
         res.json({ success: true, message: "Login Successful", user: user.employeeId });
     } catch (error) {
         res.status(500).json({ success: false, message: "Server Error" });
     }
 });
 
-// 2. Submit Scorecard
+// 3. SUBMIT SCORECARD
 app.post('/submit', async (req, res) => {
     try {
         const newEntry = new Scorecard(req.body);
         await newEntry.save();
-        console.log("✅ Saved Report for:", req.body.stationName);
+        console.log("📝 Report Saved:", req.body.stationName);
         res.status(201).json({ success: true });
     } catch (error) {
         res.status(500).json({ success: false, message: "Save Failed" });
     }
 });
 
-// 3. Get Scorecards
+// 4. GET HISTORY
 app.get('/api/scorecards', async (req, res) => {
     try {
         const history = await Scorecard.find().sort({ submittedAt: -1 });
@@ -83,7 +93,7 @@ app.get('/api/scorecards', async (req, res) => {
     }
 });
 
-// 4. Serve Website
+// 5. SERVE WEBSITE
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
