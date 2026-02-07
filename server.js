@@ -62,7 +62,7 @@ app.get('/api/scorecards', async (req, res) => {
 });
 
 // 3. Serve the Website (For any other route, show index.html)
-app.get('*', (req, res) => {
+app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
