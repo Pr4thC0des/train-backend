@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Inspection Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        
+        <div class="header">
+            <h1><i class="fas fa-train"></i> Railway Inspection Dashboard</h1>
+            <p>Real-time monitoring of cleanliness, safety, and infrastructure reports.</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">Total Reports</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div class="stat-value" id="stationCount">0</div>
+                <div class="stat-label">Stations Covered</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-server"></i></div>
+                <div class="stat-value" style="color: #48BB78;">Live</div>
+                <div class="stat-label">System Status</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <div class="table-header">
+                <span class="table-title">Recent Submissions</span>
+                <button class="btn-view" id="refreshBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Station</th>
+                        <th>Inspection Date</th>
+                        <th>Submitted</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    </tbody>
+            </table>
+
+            <div id="loading">
+                <div class="spinner"></div>
+                <span>Fetching data from server...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
