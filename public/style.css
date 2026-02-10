@@ -363,3 +363,43 @@ tr:hover td {
     .modal-content { position: absolute; left: 0; top: 0; width: 100%; max-width: 100%; box-shadow: none; }
     .modal-footer, .close-btn { display: none; }
 }
+
+.btn-view {
+    background: white;
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-view:hover {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(13, 71, 161, 0.2);
+}
+
+/* ✅ NEW: Delete Button Style */
+.btn-delete {
+    background: white;
+    color: #E53E3E;
+    border: 1px solid #E53E3E;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    margin-left: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-delete:hover {
+    background: #E53E3E;
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(229, 62, 62, 0.2);
+}

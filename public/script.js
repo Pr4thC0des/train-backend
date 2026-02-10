@@ -1,5 +1,5 @@
 const API_URL = '/api/scorecards';
-let allReports = []; // Store data globally so we can access it easily
+let allReports = []; 
 
 document.addEventListener('DOMContentLoaded', loadData);
 document.getElementById('refreshBtn').addEventListener('click', loadData);
@@ -14,14 +14,11 @@ async function loadData() {
     try {
         const response = await fetch(API_URL);
         const data = await response.json();
-        
-        // Save to global variable
         allReports = data;
 
         await new Promise(r => setTimeout(r, 500));
         loading.style.display = 'none';
 
-        // Update Stats
         animateValue("totalCount", 0, data.length, 1000);
         const uniqueStations = new Set(data.map(item => item.stationName));
         animateValue("stationCount", 0, uniqueStations.size, 1000);
@@ -39,6 +36,7 @@ async function loadData() {
             const inspectDate = new Date(row.inspectionDate).toLocaleDateString();
             const submitDate = new Date(row.submittedAt).toLocaleString();
 
+            // ✅ ADDED: Delete Button next to View Report
             tr.innerHTML = `
                 <td style="font-weight: 600; color: var(--primary);">
                     <i class="fas fa-subway" style="margin-right:8px; opacity:0.6;"></i> ${row.stationName}
@@ -47,8 +45,9 @@ async function loadData() {
                 <td style="color: var(--text-light); font-size: 13px;">${submitDate}</td>
                 <td><span class="badge">Completed</span></td>
                 <td>
-                    <button class="btn-view" onclick="openModal(${index})">
-                        View Report
+                    <button class="btn-view" onclick="openModal(${index})">View</button>
+                    <button class="btn-delete" onclick="deleteReport('${row._id}')">
+                        <i class="fas fa-trash-alt"></i>
                     </button>
                 </td>
             `;
@@ -61,21 +60,37 @@ async function loadData() {
     }
 }
 
-// --- NEW MODAL FUNCTIONS ---
+// ✅ NEW: Delete Logic
+async function deleteReport(id) {
+    if (!confirm("Are you sure you want to permanently delete this report?")) return;
 
+    try {
+        const res = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+        const result = await res.json();
+        
+        if (result.success) {
+            loadData(); // Refresh table
+        } else {
+            alert("Failed to delete report.");
+        }
+    } catch (error) {
+        console.error("Delete Error:", error);
+        alert("Error connecting to server.");
+    }
+}
+
+// ... (Existing Modal & Animation functions remain same) ...
 function openModal(index) {
     const report = allReports[index];
     const modal = document.getElementById('reportModal');
     const modalBody = document.getElementById('modalBody');
     const modalDate = document.getElementById('modalDate');
 
-    // 1. Set Header Info
     const dateStr = new Date(report.inspectionDate).toLocaleDateString(undefined, { 
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
     });
     modalDate.innerText = `Inspection Date: ${dateStr} | Station: ${report.stationName}`;
 
-    // 2. Build the Score Table HTML
     let tableHTML = `
         <table class="report-table">
             <thead>
@@ -88,19 +103,16 @@ function openModal(index) {
             <tbody>
     `;
 
-    // Loop through scores
     const scores = report.scores || {};
     const remarks = report.remarks || {};
 
     for (const [activity, scoreList] of Object.entries(scores)) {
-        // Handle if score is array or number (safety check)
         const scoreVal = Array.isArray(scoreList) ? scoreList[0] : scoreList;
         const remarkVal = remarks[activity] || "-";
 
-        // Color code the score
         let badgeClass = "score-low";
-        if (scoreVal >= 8) badgeClass = "score-high";
-        else if (scoreVal >= 5) badgeClass = "score-mid";
+        if (scoreVal >= 4) badgeClass = "score-high"; // Adjusted to 5-star scale
+        else if (scoreVal == 3) badgeClass = "score-mid";
 
         tableHTML += `
             <tr>
@@ -112,29 +124,21 @@ function openModal(index) {
     }
 
     tableHTML += `</tbody></table>`;
-    
-    // 3. Inject and Show
     modalBody.innerHTML = tableHTML;
     modal.classList.add('show');
 }
 
 function closeModal() {
-    const modal = document.getElementById('reportModal');
-    modal.classList.remove('show');
+    document.getElementById('reportModal').classList.remove('show');
 }
 
-// Close modal if clicking outside the card
 window.onclick = function(event) {
-    const modal = document.getElementById('reportModal');
-    if (event.target === modal) {
-        closeModal();
-    }
+    if (event.target === document.getElementById('reportModal')) closeModal();
 }
 
-function animateValue(id, start, end, duration) { /* ... keep existing ... */ 
+function animateValue(id, start, end, duration) {
     const obj = document.getElementById(id);
     if (!obj) return;
-    if(start === end) { obj.innerHTML = end; return; }
     let startTimestamp = null;
     const step = (timestamp) => {
         if (!startTimestamp) startTimestamp = timestamp;

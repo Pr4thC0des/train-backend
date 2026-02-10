@@ -27,6 +27,7 @@ const ScorecardSchema = new mongoose.Schema({
     inspectionDate: { type: Date, required: true },
     scores: { type: Map, of: [Number] },
     remarks: { type: Map, of: String },
+    submittedBy: { type: String }, // Optional: track who deleted
     submittedAt: { type: Date, default: Date.now }
 });
 
@@ -35,36 +36,29 @@ const Scorecard = mongoose.model('Scorecard', ScorecardSchema);
 
 // --- ROUTES ---
 
-// 1. REGISTER USER (Run this once to create your admin)
+// 1. REGISTER USER
 app.post('/api/register', async (req, res) => {
     try {
         const { employeeId, password } = req.body;
-        // Check if user exists
         const existing = await User.findOne({ employeeId });
         if (existing) return res.status(400).json({ success: false, message: "User already exists" });
 
-        // Create new user
         const newUser = new User({ employeeId, password });
         await newUser.save();
-        
-        console.log("👤 New User Registered:", employeeId);
         res.json({ success: true, message: "User created successfully!" });
     } catch (error) {
         res.status(500).json({ success: false, message: "Error registering user" });
     }
 });
 
-// 2. LOGIN USER (Used by App)
+// 2. LOGIN USER
 app.post('/api/login', async (req, res) => {
     const { employeeId, password } = req.body;
     try {
         const user = await User.findOne({ employeeId });
-        
         if (!user || user.password !== password) {
             return res.status(401).json({ success: false, message: "Invalid ID or Password" });
         }
-        
-        console.log("🔓 Login Success:", employeeId);
         res.json({ success: true, message: "Login Successful", user: user.employeeId });
     } catch (error) {
         res.status(500).json({ success: false, message: "Server Error" });
@@ -93,7 +87,20 @@ app.get('/api/scorecards', async (req, res) => {
     }
 });
 
-// 5. SERVE WEBSITE
+// 5. DELETE SCORECARD (✅ NEW ROUTE)
+app.delete('/api/scorecards/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await Scorecard.findByIdAndDelete(id);
+        console.log("🗑️ Report Deleted:", id);
+        res.json({ success: true });
+    } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).json({ success: false, message: "Delete Failed" });
+    }
+});
+
+// 6. SERVE WEBSITE
 app.get(/.*/, (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
