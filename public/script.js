@@ -36,7 +36,6 @@ async function loadData() {
             const inspectDate = new Date(row.inspectionDate).toLocaleDateString();
             const submitDate = new Date(row.submittedAt).toLocaleString();
 
-            // ✅ ADDED: Delete Button next to View Report
             tr.innerHTML = `
                 <td style="font-weight: 600; color: var(--primary);">
                     <i class="fas fa-subway" style="margin-right:8px; opacity:0.6;"></i> ${row.stationName}
@@ -60,7 +59,6 @@ async function loadData() {
     }
 }
 
-// ✅ NEW: Delete Logic
 async function deleteReport(id) {
     if (!confirm("Are you sure you want to permanently delete this report?")) return;
 
@@ -79,7 +77,6 @@ async function deleteReport(id) {
     }
 }
 
-// ... (Existing Modal & Animation functions remain same) ...
 function openModal(index) {
     const report = allReports[index];
     const modal = document.getElementById('reportModal');
@@ -95,9 +92,9 @@ function openModal(index) {
         <table class="report-table">
             <thead>
                 <tr>
-                    <th style="width: 50%;">Activity / Area</th>
+                    <th style="width: 40%;">Activity / Area</th>
                     <th style="width: 15%;">Score</th>
-                    <th>Remarks</th>
+                    <th>Remarks & Media</th>
                 </tr>
             </thead>
             <tbody>
@@ -105,20 +102,33 @@ function openModal(index) {
 
     const scores = report.scores || {};
     const remarks = report.remarks || {};
+    const images = report.images || {}; // Fetch images
 
     for (const [activity, scoreList] of Object.entries(scores)) {
         const scoreVal = Array.isArray(scoreList) ? scoreList[0] : scoreList;
         const remarkVal = remarks[activity] || "-";
+        const imgBase64 = images[activity]; // Check if image exists for this activity
 
         let badgeClass = "score-low";
-        if (scoreVal >= 4) badgeClass = "score-high"; // Adjusted to 5-star scale
+        if (scoreVal >= 4) badgeClass = "score-high"; 
         else if (scoreVal == 3) badgeClass = "score-mid";
+
+        let imgHTML = "";
+        if (imgBase64) {
+            // Embeds thumbnail, opens full image in new tab when clicked
+            imgHTML = `<div style="margin-top: 10px;">
+                          <img src="data:image/jpeg;base64,${imgBase64}" 
+                               style="max-height: 70px; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: zoom-in;" 
+                               onclick="window.open(this.src, '_blank')" 
+                               title="Click to view image">
+                       </div>`;
+        }
 
         tableHTML += `
             <tr>
                 <td style="font-weight:500;">${activity}</td>
                 <td><span class="score-badge ${badgeClass}">${scoreVal}</span></td>
-                <td style="color:#666; font-size:14px;">${remarkVal}</td>
+                <td style="color:#666; font-size:14px;">${remarkVal} ${imgHTML}</td>
             </tr>
         `;
     }
